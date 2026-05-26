@@ -3,13 +3,16 @@ import {
   compileAndRun,
   fetchCompilers,
   LANG_PRESETS,
+  parseCompileErrors,
   pickCompilerName,
 } from '@anime-ide-code/shared';
 import type {
+  CompileDiagnostic,
   WandboxCompileResult,
   WandboxCompiler,
 } from '@anime-ide-code/shared';
 import { useCompiler } from '../store/compiler';
+import { CodeEditor } from '../components/CodeEditor';
 import { Loader } from '../components/Loader';
 
 export function CompilerPage() {
@@ -43,6 +46,11 @@ export function CompilerPage() {
 
   const source = sources[preset.id] ?? preset.starter;
 
+  const diagnostics: CompileDiagnostic[] = useMemo(
+    () => (result ? parseCompileErrors(result, preset.id) : []),
+    [result, preset.id],
+  );
+
   const onRun = async () => {
     if (!compilerName) {
       setErr('Список компиляторов ещё грузится, подожди пару секунд');
@@ -69,6 +77,11 @@ export function CompilerPage() {
     }
   };
 
+  // Сбросить результат и подсветку при смене языка
+  useEffect(() => {
+    setResult(null);
+  }, [preset.id]);
+
   const exitCode = result ? parseInt(result.status, 10) : null;
   const hasOutput = Boolean(
     result?.program_output ||
@@ -78,7 +91,7 @@ export function CompilerPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 lg:px-8 py-6 space-y-4">
+    <div className="max-w-6xl mx-auto px-4 lg:px-8 py-6 space-y-4">
       <div>
         <div className="text-text-dim text-xs font-bold uppercase tracking-wider mb-2">
           Язык
@@ -109,16 +122,40 @@ export function CompilerPage() {
         <div className="text-text-dim text-xs font-bold uppercase tracking-wider mb-2">
           Код
         </div>
-        <textarea
+        <CodeEditor
+          langId={preset.id}
           value={source}
-          onChange={(e) => setSource(preset.id, e.target.value)}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
-          rows={16}
-          className="w-full bg-bg-card border border-border rounded-xl p-3 font-mono text-sm text-text resize-y outline-none focus:border-accent transition-colors"
-          placeholder="// сюда код"
+          onChange={(v) => setSource(preset.id, v)}
+          diagnostics={diagnostics}
+          minHeight={380}
         />
+        {diagnostics.length > 0 ? (
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            {diagnostics.slice(0, 5).map((d, i) => (
+              <div
+                key={i}
+                className={[
+                  'px-2.5 py-1 rounded-md border font-mono',
+                  d.severity === 'error'
+                    ? 'border-danger/60 text-danger bg-danger/10'
+                    : d.severity === 'warning'
+                      ? 'border-warn/60 text-warn bg-warn/10'
+                      : 'border-border text-text-dim bg-bg-card',
+                ].join(' ')}
+              >
+                <span className="font-bold">L{d.line}</span>
+                {d.column ? <span className="opacity-60">:{d.column}</span> : null}
+                <span className="mx-1.5 opacity-60">·</span>
+                <span>{d.message}</span>
+              </div>
+            ))}
+            {diagnostics.length > 5 ? (
+              <div className="px-2.5 py-1 text-text-muted">
+                ещё {diagnostics.length - 5}…
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div>
@@ -157,7 +194,7 @@ export function CompilerPage() {
       {err ? (
         <div className="p-4 rounded-xl bg-bg-card border border-danger/60">
           <div className="text-danger font-bold text-sm mb-2">Ошибка</div>
-          <pre className="font-mono text-sm text-text whitespace-pre-wrap break-words">
+          <pre className="font-mono text-sm text-text whitespace-pre-wrap wrap-break-word">
             {err}
           </pre>
         </div>
@@ -174,7 +211,7 @@ export function CompilerPage() {
               <div className="text-danger text-xs font-bold uppercase tracking-wider mb-1">
                 Compile error
               </div>
-              <pre className="font-mono text-sm text-danger whitespace-pre-wrap break-words">
+              <pre className="font-mono text-sm text-danger whitespace-pre-wrap wrap-break-word">
                 {result.compiler_error}
               </pre>
             </div>
@@ -184,7 +221,7 @@ export function CompilerPage() {
               <div className="text-text-dim text-xs font-bold uppercase tracking-wider mb-1">
                 stdout
               </div>
-              <pre className="font-mono text-sm text-text whitespace-pre-wrap break-words">
+              <pre className="font-mono text-sm text-text whitespace-pre-wrap wrap-break-word">
                 {result.program_output}
               </pre>
             </div>
@@ -194,7 +231,7 @@ export function CompilerPage() {
               <div className="text-danger text-xs font-bold uppercase tracking-wider mb-1">
                 stderr
               </div>
-              <pre className="font-mono text-sm text-danger whitespace-pre-wrap break-words">
+              <pre className="font-mono text-sm text-danger whitespace-pre-wrap wrap-break-word">
                 {result.program_error}
               </pre>
             </div>

@@ -14,9 +14,11 @@ import {
   compileAndRun,
   fetchCompilers,
   LANG_PRESETS,
+  parseCompileErrors,
   pickCompilerName,
 } from '@anime-ide-code/shared';
 import type {
+  CompileDiagnostic,
   WandboxCompileResult,
   WandboxCompiler,
 } from '@anime-ide-code/shared';
@@ -83,6 +85,10 @@ export default function CompilerScreen() {
       result?.compiler_error ||
       result?.compiler_output,
   );
+  const diagnostics: CompileDiagnostic[] = useMemo(
+    () => (result ? parseCompileErrors(result, preset.id) : []),
+    [result, preset.id],
+  );
 
   return (
     <KeyboardAvoidingView
@@ -136,6 +142,43 @@ export default function CompilerScreen() {
           placeholder="// сюда код"
           placeholderTextColor={colors.textMuted}
         />
+
+        {diagnostics.length > 0 ? (
+          <View style={styles.diagsWrap}>
+            {diagnostics.slice(0, 8).map((d, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.diagChip,
+                  d.severity === 'error' && styles.diagChipError,
+                  d.severity === 'warning' && styles.diagChipWarn,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.diagChipText,
+                    {
+                      color:
+                        d.severity === 'error'
+                          ? colors.danger
+                          : d.severity === 'warning'
+                            ? colors.warn
+                            : colors.textDim,
+                    },
+                  ]}
+                >
+                  <Text style={{ fontWeight: '800' }}>L{d.line}</Text>
+                  {d.column ? <Text>:{d.column}</Text> : null}
+                  <Text>  ·  </Text>
+                  <Text>{d.message}</Text>
+                </Text>
+              </View>
+            ))}
+            {diagnostics.length > 8 ? (
+              <Text style={styles.diagMore}>ещё {diagnostics.length - 8}…</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <Text style={styles.label}>stdin (необязательно)</Text>
         <TextInput
@@ -267,6 +310,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  diagsWrap: { marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  diagChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgCard,
+  },
+  diagChipError: {
+    borderColor: 'rgba(255,92,122,0.55)',
+    backgroundColor: 'rgba(255,92,122,0.10)',
+  },
+  diagChipWarn: {
+    borderColor: 'rgba(245,182,66,0.55)',
+    backgroundColor: 'rgba(245,182,66,0.10)',
+  },
+  diagChipText: { fontFamily: mono, fontSize: 11 },
+  diagMore: { color: colors.textMuted, fontSize: 11, alignSelf: 'center' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   btn: {
     flex: 1,

@@ -13,6 +13,7 @@ import {
 import { fetchTitle, posterUrl, sortEpisodes } from '@anime-ide-code/shared';
 import type { AniRelease } from '@anime-ide-code/shared';
 import { useFavorites } from '../../src/store/favorites';
+import { FranchiseBlock } from '../../src/components/FranchiseBlock';
 import { colors } from '../../src/theme/colors';
 
 export default function TitleScreen() {
@@ -120,6 +121,8 @@ export default function TitleScreen() {
         {title.description ? (
           <Text style={styles.description}>{title.description}</Text>
         ) : null}
+
+        <FranchiseBlock releaseId={title.id} currentReleaseId={title.id} />
 
         <Text style={styles.sectionTitle}>
           Серии {episodes.length ? `(${episodes.length})` : ''}

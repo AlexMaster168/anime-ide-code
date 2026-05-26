@@ -81,3 +81,45 @@ export interface AniRelease {
   members: AniMember[];
   episodes: AniEpisode[];
 }
+
+export interface AniFranchiseImage {
+  preview: string;
+  thumbnail: string;
+  optimized?: {
+    preview?: string;
+    thumbnail?: string;
+  };
+}
+
+export interface AniFranchiseSummary {
+  id: string;
+  name: string;
+  name_english?: string | null;
+  image: AniFranchiseImage;
+  rating?: number | null;
+  first_year?: number | null;
+  last_year?: number | null;
+  total_episodes?: number | null;
+  total_releases?: number | null;
+  total_duration?: string | null;
+  total_duration_in_seconds?: number | null;
+}
+
+export interface AniFranchiseReleaseRef {
+  id: string;
+  sort_order: number;
+  release_id: number;
+  franchise_id: string;
+  release: AniRelease;
+}
+
+export interface AniFranchise extends AniFranchiseSummary {
+  franchise_releases: AniFranchiseReleaseRef[];
+}
+
+export interface CatalogFilters {
+  search?: string;
+  yearFrom?: number;
+  yearTo?: number;
+  genreIds?: number[];
+}

@@ -4,6 +4,7 @@ import { fetchTitle, posterUrl, sortEpisodes } from '@anime-ide-code/shared';
 import type { AniRelease } from '@anime-ide-code/shared';
 import { useFavorites } from '../store/favorites';
 import { CenteredLoader } from '../components/Loader';
+import { FranchiseBlock } from '../components/FranchiseBlock';
 
 export function TitlePage() {
   const { idOrAlias } = useParams<{ idOrAlias: string }>();
@@ -132,6 +133,8 @@ export function TitlePage() {
           ) : null}
         </div>
       </div>
+
+      <FranchiseBlock releaseId={title.id} currentReleaseId={title.id} />
 
       <h2 className="text-xl font-extrabold text-text mt-10 mb-4">
         Серии {episodes.length ? `(${episodes.length})` : ''}
