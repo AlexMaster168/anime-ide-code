@@ -1,0 +1,33 @@
+{
+  "name": "@anime-ide-code/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "deploy": "pnpm build && pnpm dlx firebase-tools deploy --only hosting",
+    "firebase:login": "pnpm dlx firebase-tools login",
+    "firebase:init": "pnpm dlx firebase-tools use --add"
+  },
+  "dependencies": {
+    "@anime-ide-code/shared": "workspace:*",
+    "@vidstack/react": "^1.12.13",
+    "axios": "^1.16.1",
+    "hls.js": "^1.5.20",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.3.0",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "tailwindcss": "^4.1.5",
+    "typescript": "~5.7.0",
+    "vite": "^6.0.0"
+  }
+}

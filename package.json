@@ -1,0 +1,17 @@
+{
+  "name": "anime-ide-code",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "mobile": "pnpm --filter @anime-ide-code/mobile start",
+    "android": "pnpm --filter @anime-ide-code/mobile android",
+    "web": "pnpm --filter @anime-ide-code/web dev",
+    "build:web": "pnpm --filter @anime-ide-code/web build",
+    "deploy:web": "pnpm --filter @anime-ide-code/web deploy",
+    "expo:web": "pnpm --filter @anime-ide-code/mobile exec expo start --web",
+    "tsc": "pnpm -r exec tsc --noEmit"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.18.0"
+  }
+}

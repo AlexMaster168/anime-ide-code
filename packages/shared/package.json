@@ -1,0 +1,17 @@
+{
+  "name": "@anime-ide-code/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api/anilibria": "./src/api/anilibria.ts",
+    "./api/wandbox": "./src/api/wandbox.ts",
+    "./types/anilibria": "./src/types/anilibria.ts",
+    "./types/compile": "./src/types/compile.ts"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
