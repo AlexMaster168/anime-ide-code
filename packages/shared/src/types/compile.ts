@@ -36,4 +36,6 @@ export interface LangPreset {
   wandboxLanguage: string;
   fileName: string;
   starter: string;
+  /** Доп. опции компилятора Wandbox (compiler-option-raw), по одной на строку. */
+  compilerOptionRaw?: string;
 }

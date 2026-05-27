@@ -4,7 +4,11 @@ import type {
   AniFranchise,
   AniFranchiseSummary,
   AniGenre,
+  AniMemberFull,
+  AniReference,
   AniRelease,
+  AniScheduleItem,
+  AniTorrent,
   CatalogFilters,
   Quality,
 } from '../types/anilibria';
@@ -48,6 +52,13 @@ function filtersToParams(filters?: CatalogFilters): Record<string, unknown> {
       params[`f[genres][${i}]`] = id;
     });
   }
+  if (filters.sorting) params['f[sorting]'] = filters.sorting;
+  filters.types?.forEach((v, i) => (params[`f[types][${i}]`] = v));
+  filters.seasons?.forEach((v, i) => (params[`f[seasons][${i}]`] = v));
+  filters.ageRatings?.forEach((v, i) => (params[`f[age_ratings][${i}]`] = v));
+  filters.publishStatuses?.forEach(
+    (v, i) => (params[`f[publish_statuses][${i}]`] = v),
+  );
   return params;
 }
 
@@ -138,6 +149,110 @@ export async function fetchFranchise(franchiseId: string): Promise<AniFranchise>
     `/anime/franchises/${encodeURIComponent(franchiseId)}`,
   );
   return data;
+}
+
+export async function fetchSchedule(): Promise<AniScheduleItem[]> {
+  const { data } = await aniClient.get<AniScheduleItem[]>(
+    '/anime/schedule/week',
+  );
+  return data;
+}
+
+export async function fetchRandomReleases(limit = 1): Promise<AniRelease[]> {
+  const { data } = await aniClient.get<AniRelease[]>(
+    '/anime/releases/random',
+    { params: { limit } },
+  );
+  return data;
+}
+
+export const WEEKDAYS: { value: number; label: string }[] = [
+  { value: 1, label: 'Понедельник' },
+  { value: 2, label: 'Вторник' },
+  { value: 3, label: 'Среда' },
+  { value: 4, label: 'Четверг' },
+  { value: 5, label: 'Пятница' },
+  { value: 6, label: 'Суббота' },
+  { value: 7, label: 'Воскресенье' },
+];
+
+export async function fetchTypes(): Promise<AniReference[]> {
+  const { data } = await aniClient.get<AniReference[]>(
+    '/anime/catalog/references/types',
+  );
+  return data;
+}
+
+export async function fetchSeasons(): Promise<AniReference[]> {
+  const { data } = await aniClient.get<AniReference[]>(
+    '/anime/catalog/references/seasons',
+  );
+  return data;
+}
+
+export async function fetchAgeRatings(): Promise<AniReference[]> {
+  const { data } = await aniClient.get<AniReference[]>(
+    '/anime/catalog/references/age-ratings',
+  );
+  return data;
+}
+
+export async function fetchRecommended(
+  forReleaseId: number,
+  limit = 12,
+): Promise<AniRelease[]> {
+  const { data } = await aniClient.get<AniRelease[]>(
+    '/anime/releases/recommended',
+    { params: { forRecReleaseId: forReleaseId, limit } },
+  );
+  return data;
+}
+
+export async function fetchReleaseMembers(
+  idOrAlias: number | string,
+): Promise<AniMemberFull[]> {
+  const { data } = await aniClient.get<AniMemberFull[]>(
+    `/anime/releases/${encodeURIComponent(String(idOrAlias))}/members`,
+  );
+  return data;
+}
+
+export async function fetchGenreReleases(
+  genreId: number,
+  page = 1,
+  limit = 30,
+): Promise<CatalogPage> {
+  const { data } = await aniClient.get<CatalogPage>(
+    `/anime/genres/${genreId}/releases`,
+    { params: { page, limit } },
+  );
+  return data;
+}
+
+export async function fetchGenre(genreId: number): Promise<AniGenre> {
+  const { data } = await aniClient.get<AniGenre>(`/anime/genres/${genreId}`);
+  return data;
+}
+
+export async function fetchReleaseTorrents(
+  releaseId: number,
+): Promise<AniTorrent[]> {
+  const { data } = await aniClient.get<AniTorrent[]>(
+    `/anime/torrents/release/${releaseId}`,
+  );
+  return data;
+}
+
+export function formatBytes(bytes: number): string {
+  if (!bytes) return '—';
+  const units = ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ'];
+  let i = 0;
+  let v = bytes;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
 export function posterUrl(path: string | null | undefined): string | null {

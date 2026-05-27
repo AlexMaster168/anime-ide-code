@@ -1,17 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { fetchAllCatalog, fetchCatalog } from '@anime-ide-code/shared';
+import { useNavigate } from 'react-router-dom';
+import {
+  fetchAllCatalog,
+  fetchCatalog,
+  fetchRandomReleases,
+} from '@anime-ide-code/shared';
 import type {
   AniRelease,
   CatalogFilters,
   FetchAllProgress,
+  SortingValue,
 } from '@anime-ide-code/shared';
 import { TitleCard } from '../components/TitleCard';
 import { CenteredLoader, Loader } from '../components/Loader';
 import { CatalogFiltersBar } from '../components/CatalogFilters';
+import { ContinueWatching } from '../components/ContinueWatching';
 
 const PAGE_SIZE = 24;
 
+const SORT_OPTIONS: { value: SortingValue; label: string }[] = [
+  { value: 'FRESH_AT_DESC', label: 'Обновлены недавно' },
+  { value: 'FRESH_AT_ASC', label: 'Обновлены давно' },
+  { value: 'RATING_DESC', label: 'Высокий рейтинг' },
+  { value: 'RATING_ASC', label: 'Низкий рейтинг' },
+  { value: 'YEAR_DESC', label: 'Самые новые' },
+  { value: 'YEAR_ASC', label: 'Самые старые' },
+];
+
 export function HomePage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<CatalogFilters>({});
   const [titles, setTitles] = useState<AniRelease[]>([]);
   const [page, setPage] = useState(1);
@@ -21,6 +38,7 @@ export function HomePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [allProgress, setAllProgress] = useState<FetchAllProgress | null>(null);
+  const [randomLoading, setRandomLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inFlightRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +71,6 @@ export function HomePage() {
     [],
   );
 
-  // reload when filters change
   useEffect(() => {
     setLoadingInitial(true);
     setTitles([]);
@@ -100,12 +117,29 @@ export function HomePage() {
     }
   };
 
+  const openRandom = async () => {
+    setRandomLoading(true);
+    try {
+      const [r] = await fetchRandomReleases(1);
+      if (r) navigate(`/title/${r.alias}`);
+    } catch {
+      /* ignore */
+    } finally {
+      setRandomLoading(false);
+    }
+  };
+
+  const setSorting = (value: SortingValue | undefined) =>
+    setFilters((f) => ({ ...f, sorting: value }));
+
   if (loadingInitial && titles.length === 0) return <CenteredLoader />;
 
   const allLoaded = titles.length >= total && total > 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
+      <ContinueWatching />
+
       <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
         <h1 className="text-2xl lg:text-3xl font-extrabold text-text">
           Каталог{' '}
@@ -113,26 +147,59 @@ export function HomePage() {
             ({titles.length} из {total})
           </span>
         </h1>
-        {!allLoaded && !loadingAll && total > titles.length ? (
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={loadEverything}
-            className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent-dim transition-colors"
+            onClick={openRandom}
+            disabled={randomLoading}
+            title="Случайный тайтл"
+            className="px-3 py-2 rounded-lg bg-bg-card border border-border text-text text-sm font-semibold hover:border-accent/40 transition-colors flex items-center gap-2 disabled:opacity-60"
           >
-            Загрузить все {total} →
+            {randomLoading ? <Loader size="sm" /> : '🎲'}
+            <span className="hidden sm:inline">Случайное</span>
           </button>
-        ) : null}
-        {loadingAll && allProgress ? (
-          <div className="flex items-center gap-3">
-            <Loader size="sm" />
-            <span className="text-text-dim text-sm">
-              {allProgress.loaded} / {allProgress.total}
-            </span>
-          </div>
-        ) : null}
+          {!allLoaded && !loadingAll && total > titles.length ? (
+            <button
+              type="button"
+              onClick={loadEverything}
+              className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-semibold hover:bg-accent-dim transition-colors"
+            >
+              Загрузить все {total} →
+            </button>
+          ) : null}
+          {loadingAll && allProgress ? (
+            <div className="flex items-center gap-3">
+              <Loader size="sm" />
+              <span className="text-text-dim text-sm">
+                {allProgress.loaded} / {allProgress.total}
+              </span>
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <CatalogFiltersBar value={filters} onChange={setFilters} />
+      <div className="flex items-center gap-3 flex-wrap mb-6">
+        <CatalogFiltersBar value={filters} onChange={setFilters} />
+        <div className="flex items-center gap-2">
+          <span className="text-text-dim text-xs font-bold uppercase tracking-wider">
+            Сортировка
+          </span>
+          <select
+            value={filters.sorting ?? ''}
+            onChange={(e) =>
+              setSorting((e.target.value || undefined) as SortingValue | undefined)
+            }
+            className="bg-bg-card border border-border rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent cursor-pointer"
+          >
+            <option value="">По умолчанию</option>
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {error ? (
         <div className="mb-4 p-3 rounded-lg bg-bg-card border border-danger/40 text-danger text-sm">

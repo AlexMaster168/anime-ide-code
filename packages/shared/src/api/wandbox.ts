@@ -49,6 +49,7 @@ export const LANG_PRESETS: LangPreset[] = [
     wandboxLanguage: 'TypeScript',
     fileName: 'main.ts',
     starter: 'const msg: string = "Hello, Лёха!";\nconsole.log(msg);\n',
+    compilerOptionRaw: '--target\nes2017',
   },
   {
     id: 'go',

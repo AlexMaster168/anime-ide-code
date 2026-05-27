@@ -8,8 +8,17 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { fetchGenres } from '@anime-ide-code/shared';
-import type { AniGenre, CatalogFilters } from '@anime-ide-code/shared';
+import {
+  fetchAgeRatings,
+  fetchGenres,
+  fetchSeasons,
+  fetchTypes,
+} from '@anime-ide-code/shared';
+import type {
+  AniGenre,
+  AniReference,
+  CatalogFilters,
+} from '@anime-ide-code/shared';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -19,8 +28,16 @@ interface Props {
 
 const NOW = new Date().getFullYear();
 
+const PUBLISH_STATUSES: AniReference[] = [
+  { value: 'IS_ONGOING', description: 'Онгоинг' },
+  { value: 'IS_NOT_ONGOING', description: 'Завершён' },
+];
+
 export function CatalogFiltersBar({ value, onChange }: Props) {
   const [genres, setGenres] = useState<AniGenre[]>([]);
+  const [types, setTypes] = useState<AniReference[]>([]);
+  const [seasons, setSeasons] = useState<AniReference[]>([]);
+  const [ratings, setRatings] = useState<AniReference[]>([]);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<CatalogFilters>(value);
 
@@ -28,6 +45,9 @@ export function CatalogFiltersBar({ value, onChange }: Props) {
     fetchGenres()
       .then((g) => setGenres(g.sort((a, b) => a.name.localeCompare(b.name, 'ru'))))
       .catch(() => setGenres([]));
+    fetchTypes().then(setTypes).catch(() => setTypes([]));
+    fetchSeasons().then(setSeasons).catch(() => setSeasons([]));
+    fetchAgeRatings().then(setRatings).catch(() => setRatings([]));
   }, []);
 
   useEffect(() => {
@@ -37,25 +57,32 @@ export function CatalogFiltersBar({ value, onChange }: Props) {
   const activeCount = useMemo(
     () =>
       (value.genreIds?.length ?? 0) +
+      (value.types?.length ?? 0) +
+      (value.seasons?.length ?? 0) +
+      (value.ageRatings?.length ?? 0) +
+      (value.publishStatuses?.length ?? 0) +
       (value.yearFrom != null ? 1 : 0) +
       (value.yearTo != null ? 1 : 0),
     [value],
   );
 
-  const toggleGenre = (id: number) => {
-    const cur = new Set(draft.genreIds ?? []);
-    if (cur.has(id)) cur.delete(id);
-    else cur.add(id);
-    setDraft({ ...draft, genreIds: Array.from(cur) });
+  const toggleNum = (arr: number[] | undefined, id: number) => {
+    const s = new Set(arr ?? []);
+    s.has(id) ? s.delete(id) : s.add(id);
+    return Array.from(s);
+  };
+  const toggleStr = (arr: string[] | undefined, v: string) => {
+    const s = new Set(arr ?? []);
+    s.has(v) ? s.delete(v) : s.add(v);
+    return Array.from(s);
   };
 
   const apply = () => {
     onChange(draft);
     setOpen(false);
   };
-
   const reset = () => {
-    const next = { search: value.search };
+    const next = { search: value.search, sorting: value.sorting };
     setDraft(next);
     onChange(next);
     setOpen(false);
@@ -120,34 +147,89 @@ export function CatalogFiltersBar({ value, onChange }: Props) {
                 />
               </View>
 
-              <Text style={styles.label}>
-                Жанры {draft.genreIds?.length ? `(${draft.genreIds.length})` : ''}
-              </Text>
-              <View style={styles.genres}>
-                {genres.map((g) => {
-                  const active = draft.genreIds?.includes(g.id);
-                  return (
-                    <Pressable
-                      key={g.id}
-                      onPress={() => toggleGenre(g.id)}
-                      style={[styles.chip, active && styles.chipActive]}
-                    >
-                      <Text
-                        style={[styles.chipText, active && styles.chipTextActive]}
-                      >
-                        {g.name}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              {types.length > 0 ? (
+                <Section title="Тип">
+                  {types.map((t) => (
+                    <Chip
+                      key={t.value}
+                      active={draft.types?.includes(t.value)}
+                      onPress={() =>
+                        setDraft({ ...draft, types: toggleStr(draft.types, t.value) })
+                      }
+                      label={t.description ?? t.value}
+                    />
+                  ))}
+                </Section>
+              ) : null}
+
+              <Section title="Статус">
+                {PUBLISH_STATUSES.map((s) => (
+                  <Chip
+                    key={s.value}
+                    active={draft.publishStatuses?.includes(s.value)}
+                    onPress={() =>
+                      setDraft({
+                        ...draft,
+                        publishStatuses: toggleStr(draft.publishStatuses, s.value),
+                      })
+                    }
+                    label={s.description ?? s.value}
+                  />
+                ))}
+              </Section>
+
+              {seasons.length > 0 ? (
+                <Section title="Сезон">
+                  {seasons.map((s) => (
+                    <Chip
+                      key={s.value}
+                      active={draft.seasons?.includes(s.value)}
+                      onPress={() =>
+                        setDraft({ ...draft, seasons: toggleStr(draft.seasons, s.value) })
+                      }
+                      label={s.description ?? s.value}
+                    />
+                  ))}
+                </Section>
+              ) : null}
+
+              {ratings.length > 0 ? (
+                <Section title="Возраст">
+                  {ratings.map((r) => (
+                    <Chip
+                      key={r.value}
+                      active={draft.ageRatings?.includes(r.value)}
+                      onPress={() =>
+                        setDraft({
+                          ...draft,
+                          ageRatings: toggleStr(draft.ageRatings, r.value),
+                        })
+                      }
+                      label={r.label ?? r.description ?? r.value}
+                    />
+                  ))}
+                </Section>
+              ) : null}
+
+              <Section
+                title={`Жанры ${draft.genreIds?.length ? `(${draft.genreIds.length})` : ''}`}
+              >
+                {genres.map((g) => (
+                  <Chip
+                    key={g.id}
+                    active={draft.genreIds?.includes(g.id)}
+                    onPress={() =>
+                      setDraft({ ...draft, genreIds: toggleNum(draft.genreIds, g.id) })
+                    }
+                    label={g.name}
+                  />
+                ))}
+              </Section>
             </ScrollView>
 
             <View style={styles.sheetFooter}>
               <Pressable style={[styles.actionBtn, styles.actionSecondary]} onPress={reset}>
-                <Text style={[styles.actionText, { color: colors.text }]}>
-                  Сбросить
-                </Text>
+                <Text style={[styles.actionText, { color: colors.text }]}>Сбросить</Text>
               </Pressable>
               <Pressable style={styles.actionBtn} onPress={apply}>
                 <Text style={styles.actionText}>Применить</Text>
@@ -160,13 +242,33 @@ export function CatalogFiltersBar({ value, onChange }: Props) {
   );
 }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <>
+      <Text style={styles.label}>{title}</Text>
+      <View style={styles.chips}>{children}</View>
+    </>
+  );
+}
+
+function Chip({
+  active,
+  onPress,
+  label,
+}: {
+  active?: boolean;
+  onPress: () => void;
+  label: string;
+}) {
+  return (
+    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   btn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -179,16 +281,12 @@ const styles = StyleSheet.create({
   btnText: { color: colors.textDim, fontWeight: '700', fontSize: 13 },
   btnTextActive: { color: '#fff' },
   reset: { color: colors.danger, fontSize: 13, fontWeight: '600' },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.bg,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    maxHeight: '85%',
+    maxHeight: '88%',
     paddingHorizontal: 16,
     paddingTop: 16,
   },
@@ -206,7 +304,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginTop: 12,
+    marginTop: 16,
     marginBottom: 8,
   },
   yearsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -222,7 +320,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   dash: { color: colors.textMuted, fontSize: 14 },
-  genres: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,

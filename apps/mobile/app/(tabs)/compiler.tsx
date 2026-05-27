@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -13,9 +14,11 @@ import {
 import {
   compileAndRun,
   fetchCompilers,
+  getSnippet,
   LANG_PRESETS,
   parseCompileErrors,
   pickCompilerName,
+  snippetsForLang,
 } from '@anime-ide-code/shared';
 import type {
   CompileDiagnostic,
@@ -37,6 +40,14 @@ export default function CompilerScreen() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<WandboxCompileResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [snippetsOpen, setSnippetsOpen] = useState(false);
+
+  const snippets = useMemo(() => snippetsForLang(langId), [langId]);
+  const insertSnippet = (snippetId: string) => {
+    const code = getSnippet(langId, snippetId);
+    if (code) setSource(langId, code);
+    setSnippetsOpen(false);
+  };
 
   useEffect(() => {
     fetchCompilers().then(setCompilers).catch(() => setCompilers([]));
@@ -67,6 +78,9 @@ export default function CompilerScreen() {
         compiler: compilerName,
         code: source,
         stdin,
+        ...(preset.compilerOptionRaw
+          ? { 'compiler-option-raw': preset.compilerOptionRaw }
+          : {}),
       });
       setResult(res);
     } catch (e: any) {
@@ -129,7 +143,17 @@ export default function CompilerScreen() {
           Wandbox: {compilerName ?? '…'}
         </Text>
 
-        <Text style={styles.label}>Код</Text>
+        <View style={styles.codeLabelRow}>
+          <Text style={styles.label}>Код</Text>
+          {snippets.length > 0 ? (
+            <Pressable
+              style={styles.snippetBtn}
+              onPress={() => setSnippetsOpen(true)}
+            >
+              <Text style={styles.snippetBtnText}>📦 Сниппеты ▾</Text>
+            </Pressable>
+          ) : null}
+        </View>
         <TextInput
           value={source}
           onChangeText={(v) => setSource(preset.id, v)}
@@ -142,6 +166,35 @@ export default function CompilerScreen() {
           placeholder="// сюда код"
           placeholderTextColor={colors.textMuted}
         />
+
+        <Modal
+          visible={snippetsOpen}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setSnippetsOpen(false)}
+        >
+          <View style={styles.snippetBackdrop}>
+            <View style={styles.snippetSheet}>
+              <View style={styles.snippetHeader}>
+                <Text style={styles.snippetTitle}>Сниппеты — {preset.label}</Text>
+                <Pressable onPress={() => setSnippetsOpen(false)} hitSlop={10}>
+                  <Text style={styles.snippetClose}>✕</Text>
+                </Pressable>
+              </View>
+              <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
+                {snippets.map((s) => (
+                  <Pressable
+                    key={s.id}
+                    style={styles.snippetItem}
+                    onPress={() => insertSnippet(s.id)}
+                  >
+                    <Text style={styles.snippetItemText}>{s.label}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         {diagnostics.length > 0 ? (
           <View style={styles.diagsWrap}>
@@ -329,6 +382,51 @@ const styles = StyleSheet.create({
   },
   diagChipText: { fontFamily: mono, fontSize: 11 },
   diagMore: { color: colors.textMuted, fontSize: 11, alignSelf: 'center' },
+  codeLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  snippetBtn: {
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  snippetBtnText: { color: colors.text, fontSize: 12, fontWeight: '600' },
+  snippetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  snippetSheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    maxHeight: '75%',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  snippetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  snippetTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  snippetClose: { color: colors.text, fontSize: 22, paddingHorizontal: 4 },
+  snippetItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 8,
+  },
+  snippetItemText: { color: colors.text, fontSize: 14, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   btn: {
     flex: 1,

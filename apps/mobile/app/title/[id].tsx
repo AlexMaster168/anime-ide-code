@@ -14,6 +14,11 @@ import { fetchTitle, posterUrl, sortEpisodes } from '@anime-ide-code/shared';
 import type { AniRelease } from '@anime-ide-code/shared';
 import { useFavorites } from '../../src/store/favorites';
 import { FranchiseBlock } from '../../src/components/FranchiseBlock';
+import {
+  MembersBlock,
+  RecommendedBlock,
+  TorrentsBlock,
+} from '../../src/components/TitleExtras';
 import { colors } from '../../src/theme/colors';
 
 export default function TitleScreen() {
@@ -111,9 +116,13 @@ export default function TitleScreen() {
         {title.genres?.length ? (
           <View style={styles.tags}>
             {title.genres.map((g) => (
-              <View key={g.id} style={styles.tag}>
+              <Pressable
+                key={g.id}
+                style={styles.tag}
+                onPress={() => router.push(`/genre/${g.id}`)}
+              >
                 <Text style={styles.tagText}>{g.name}</Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         ) : null}
@@ -165,6 +174,11 @@ export default function TitleScreen() {
             </Pressable>
           ))
         )}
+
+        <MembersBlock releaseId={title.id} />
+        <RecommendedBlock releaseId={title.id} />
+        <TorrentsBlock releaseId={title.id} />
+
         <View style={{ height: 32 }} />
       </ScrollView>
     </>

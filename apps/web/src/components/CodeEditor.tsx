@@ -14,8 +14,30 @@ import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { csharp } from '@codemirror/legacy-modes/mode/clike';
 import { ruby } from '@codemirror/legacy-modes/mode/ruby';
 import { oneDark } from '@codemirror/theme-one-dark';
+import {
+  dracula,
+  tokyoNight,
+  monokai,
+  githubDark,
+  nord,
+  vscodeDark,
+} from '@uiw/codemirror-themes-all';
 import { lintGutter, linter, type Diagnostic } from '@codemirror/lint';
 import type { CompileDiagnostic } from '@anime-ide-code/shared';
+
+export const EDITOR_THEMES: { id: string; label: string; ext: Extension }[] = [
+  { id: 'one-dark', label: 'One Dark', ext: oneDark },
+  { id: 'dracula', label: 'Dracula', ext: dracula },
+  { id: 'tokyo-night', label: 'Tokyo Night', ext: tokyoNight },
+  { id: 'monokai', label: 'Monokai', ext: monokai },
+  { id: 'github-dark', label: 'GitHub Dark', ext: githubDark },
+  { id: 'nord', label: 'Nord', ext: nord },
+  { id: 'vscode-dark', label: 'VS Code Dark', ext: vscodeDark },
+];
+
+function themeById(id: string): Extension {
+  return (EDITOR_THEMES.find((t) => t.id === id) ?? EDITOR_THEMES[0]).ext;
+}
 
 const langMap: Record<string, () => Extension> = {
   python: () => python(),
@@ -38,6 +60,7 @@ interface Props {
   onChange: (v: string) => void;
   diagnostics?: CompileDiagnostic[];
   minHeight?: number;
+  themeId?: string;
 }
 
 export function CodeEditor({
@@ -46,6 +69,7 @@ export function CodeEditor({
   onChange,
   diagnostics = [],
   minHeight = 320,
+  themeId = 'one-dark',
 }: Props) {
   const extensions = useMemo<Extension[]>(() => {
     const ext: Extension[] = [];
@@ -97,7 +121,7 @@ export function CodeEditor({
         value={value}
         onChange={onChange}
         extensions={extensions}
-        theme={oneDark}
+        theme={themeById(themeId)}
         basicSetup={{
           lineNumbers: true,
           highlightActiveLine: true,

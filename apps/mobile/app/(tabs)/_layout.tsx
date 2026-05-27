@@ -37,6 +37,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="schedule"
+        options={{
+          title: 'Расписание',
+          tabBarIcon: ({ color }) => <TabIcon symbol="📅" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="compiler"
         options={{
           title: 'Уголок',

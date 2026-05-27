@@ -93,6 +93,9 @@ export function PlayerPage() {
       episode: currentEp,
       positionSec: Math.floor(current),
       durationSec: Math.floor(Number.isFinite(dur) ? dur : 0),
+      alias: title.alias,
+      nameRu: title.name.main,
+      posterPath: title.poster?.src ?? title.poster?.preview ?? null,
     });
   }, [title, currentEp, upsertHistory]);
 

@@ -82,6 +82,9 @@ export default function PlayerScreen() {
         episode: currentEp,
         positionSec: Math.floor(ev.currentTime),
         durationSec: Math.floor(player.duration ?? 0),
+        alias: title.alias,
+        nameRu: title.name.main,
+        posterPath: title.poster?.src ?? title.poster?.preview ?? null,
       });
     });
     return () => sub.remove();

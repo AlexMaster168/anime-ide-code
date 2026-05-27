@@ -5,8 +5,10 @@ import { LANG_PRESETS } from '@anime-ide-code/shared';
 interface CompilerState {
   langId: string;
   sources: Record<string, string>;
+  themeId: string;
   setLang: (langId: string) => void;
   setSource: (langId: string, source: string) => void;
+  setTheme: (themeId: string) => void;
   resetCurrent: () => void;
 }
 
@@ -19,9 +21,11 @@ export const useCompiler = create<CompilerState>()(
     (set) => ({
       langId: 'python',
       sources: initialSources,
+      themeId: 'one-dark',
       setLang: (langId) => set({ langId }),
       setSource: (langId, source) =>
         set((s) => ({ sources: { ...s.sources, [langId]: source } })),
+      setTheme: (themeId) => set({ themeId }),
       resetCurrent: () =>
         set((s) => {
           const preset = LANG_PRESETS.find((p) => p.id === s.langId);

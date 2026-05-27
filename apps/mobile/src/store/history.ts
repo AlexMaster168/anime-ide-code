@@ -8,6 +8,9 @@ export interface HistoryEntry {
   positionSec: number;
   durationSec: number;
   updatedAt: number;
+  alias?: string;
+  nameRu?: string;
+  posterPath?: string | null;
 }
 
 interface HistoryState {

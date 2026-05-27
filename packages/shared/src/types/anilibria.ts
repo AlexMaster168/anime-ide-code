@@ -117,9 +117,60 @@ export interface AniFranchise extends AniFranchiseSummary {
   franchise_releases: AniFranchiseReleaseRef[];
 }
 
+export type SortingValue =
+  | 'FRESH_AT_DESC'
+  | 'FRESH_AT_ASC'
+  | 'RATING_DESC'
+  | 'RATING_ASC'
+  | 'YEAR_DESC'
+  | 'YEAR_ASC';
+
 export interface CatalogFilters {
   search?: string;
   yearFrom?: number;
   yearTo?: number;
   genreIds?: number[];
+  sorting?: SortingValue;
+  types?: string[];
+  seasons?: string[];
+  ageRatings?: string[];
+  publishStatuses?: string[];
+}
+
+export interface AniReference {
+  value: string;
+  label?: string;
+  description: string | null;
+}
+
+export interface AniMemberFull {
+  id: string;
+  role: { value: string; description: string };
+  nickname: string | null;
+  user: { id: number; nickname: string } | null;
+}
+
+export interface AniTorrent {
+  id: number;
+  hash: string;
+  size: number;
+  type: { value: string | null; description: string | null };
+  label: string;
+  codec: { value: string | null; label: string | null; description: string | null };
+  magnet: string;
+  seeders: number;
+  leechers: number;
+  quality: { value: string | null; description: string | null } | null;
+  bitrate: number | null;
+  filename: string;
+  is_hardsub: boolean;
+  completed_times: number;
+  sort_order: number;
+}
+
+export interface AniScheduleItem {
+  release: AniRelease;
+  full_season_is_released: boolean;
+  published_release_episode: AniEpisode | null;
+  next_release_episode_number: number | null;
 }

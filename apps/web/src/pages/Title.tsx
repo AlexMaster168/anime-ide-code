@@ -5,6 +5,9 @@ import type { AniRelease } from '@anime-ide-code/shared';
 import { useFavorites } from '../store/favorites';
 import { CenteredLoader } from '../components/Loader';
 import { FranchiseBlock } from '../components/FranchiseBlock';
+import { RecommendedBlock } from '../components/RecommendedBlock';
+import { MembersBlock } from '../components/MembersBlock';
+import { TorrentsBlock } from '../components/TorrentsBlock';
 
 export function TitlePage() {
   const { idOrAlias } = useParams<{ idOrAlias: string }>();
@@ -116,12 +119,13 @@ export function TitlePage() {
           {title.genres?.length ? (
             <div className="flex flex-wrap gap-1.5 mt-5">
               {title.genres.map((g) => (
-                <span
+                <Link
                   key={g.id}
-                  className="px-2.5 py-1 rounded-md bg-bg-card/60 text-text-dim text-xs"
+                  to={`/genre/${g.id}`}
+                  className="px-2.5 py-1 rounded-md bg-bg-card/60 text-text-dim text-xs hover:bg-accent hover:text-white transition-colors"
                 >
                   {g.name}
-                </span>
+                </Link>
               ))}
             </div>
           ) : null}
@@ -174,6 +178,10 @@ export function TitlePage() {
           ))}
         </ul>
       )}
+
+      <MembersBlock releaseId={title.id} />
+      <RecommendedBlock releaseId={title.id} />
+      <TorrentsBlock releaseId={title.id} />
     </div>
   );
 }

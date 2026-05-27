@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
-import { fetchGenres } from '@anime-ide-code/shared';
-import type { AniGenre, CatalogFilters } from '@anime-ide-code/shared';
+import {
+  fetchAgeRatings,
+  fetchGenres,
+  fetchSeasons,
+  fetchTypes,
+} from '@anime-ide-code/shared';
+import type {
+  AniGenre,
+  AniReference,
+  CatalogFilters,
+} from '@anime-ide-code/shared';
 
 interface Props {
   value: CatalogFilters;
@@ -10,33 +19,52 @@ interface Props {
 const NOW = new Date().getFullYear();
 const MIN_YEAR = 1965;
 
+const PUBLISH_STATUSES: AniReference[] = [
+  { value: 'IS_ONGOING', description: 'Онгоинг' },
+  { value: 'IS_NOT_ONGOING', description: 'Завершён' },
+];
+
 export function CatalogFiltersBar({ value, onChange }: Props) {
   const [genres, setGenres] = useState<AniGenre[]>([]);
+  const [types, setTypes] = useState<AniReference[]>([]);
+  const [seasons, setSeasons] = useState<AniReference[]>([]);
+  const [ratings, setRatings] = useState<AniReference[]>([]);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     fetchGenres()
       .then((g) => setGenres(g.sort((a, b) => a.name.localeCompare(b.name, 'ru'))))
       .catch(() => setGenres([]));
+    fetchTypes().then(setTypes).catch(() => setTypes([]));
+    fetchSeasons().then(setSeasons).catch(() => setSeasons([]));
+    fetchAgeRatings().then(setRatings).catch(() => setRatings([]));
   }, []);
 
-  const toggleGenre = (id: number) => {
-    const cur = new Set(value.genreIds ?? []);
-    if (cur.has(id)) cur.delete(id);
-    else cur.add(id);
-    onChange({ ...value, genreIds: Array.from(cur) });
+  const toggleIn = (arr: number[] | undefined, id: number): number[] => {
+    const s = new Set(arr ?? []);
+    s.has(id) ? s.delete(id) : s.add(id);
+    return Array.from(s);
+  };
+  const toggleStr = (arr: string[] | undefined, v: string): string[] => {
+    const s = new Set(arr ?? []);
+    s.has(v) ? s.delete(v) : s.add(v);
+    return Array.from(s);
   };
 
   const activeCount =
     (value.genreIds?.length ?? 0) +
+    (value.types?.length ?? 0) +
+    (value.seasons?.length ?? 0) +
+    (value.ageRatings?.length ?? 0) +
+    (value.publishStatuses?.length ?? 0) +
     (value.yearFrom != null ? 1 : 0) +
     (value.yearTo != null ? 1 : 0);
 
   const reset = () =>
-    onChange({ search: value.search, genreIds: [], yearFrom: undefined, yearTo: undefined });
+    onChange({ search: value.search, sorting: value.sorting });
 
   return (
-    <div className="mb-6">
+    <div>
       <div className="flex items-center gap-3 flex-wrap">
         <button
           type="button"
@@ -69,10 +97,7 @@ export function CatalogFiltersBar({ value, onChange }: Props) {
 
       {open ? (
         <div className="mt-4 p-4 rounded-xl bg-bg-card border border-border space-y-5">
-          <div>
-            <div className="text-text-dim text-xs font-bold uppercase tracking-wider mb-2">
-              Годы
-            </div>
+          <FilterSection title="Годы">
             <div className="flex items-center gap-3">
               <input
                 type="number"
@@ -104,39 +129,153 @@ export function CatalogFiltersBar({ value, onChange }: Props) {
                 className="w-24 bg-bg-elevated border border-border rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent"
               />
             </div>
-          </div>
+          </FilterSection>
 
-          <div>
-            <div className="text-text-dim text-xs font-bold uppercase tracking-wider mb-2">
-              Жанры {value.genreIds?.length ? `(${value.genreIds.length})` : ''}
-            </div>
+          {types.length > 0 ? (
+            <FilterSection title="Тип">
+              <ChipRow>
+                {types.map((t) => (
+                  <RefChip
+                    key={t.value}
+                    active={value.types?.includes(t.value)}
+                    onClick={() =>
+                      onChange({ ...value, types: toggleStr(value.types, t.value) })
+                    }
+                  >
+                    {t.description}
+                  </RefChip>
+                ))}
+              </ChipRow>
+            </FilterSection>
+          ) : null}
+
+          <FilterSection title="Статус">
+            <ChipRow>
+              {PUBLISH_STATUSES.map((s) => (
+                <RefChip
+                  key={s.value}
+                  active={value.publishStatuses?.includes(s.value)}
+                  onClick={() =>
+                    onChange({
+                      ...value,
+                      publishStatuses: toggleStr(value.publishStatuses, s.value),
+                    })
+                  }
+                >
+                  {s.description}
+                </RefChip>
+              ))}
+            </ChipRow>
+          </FilterSection>
+
+          {seasons.length > 0 ? (
+            <FilterSection title="Сезон">
+              <ChipRow>
+                {seasons.map((s) => (
+                  <RefChip
+                    key={s.value}
+                    active={value.seasons?.includes(s.value)}
+                    onClick={() =>
+                      onChange({ ...value, seasons: toggleStr(value.seasons, s.value) })
+                    }
+                  >
+                    {s.description}
+                  </RefChip>
+                ))}
+              </ChipRow>
+            </FilterSection>
+          ) : null}
+
+          {ratings.length > 0 ? (
+            <FilterSection title="Возраст">
+              <ChipRow>
+                {ratings.map((r) => (
+                  <RefChip
+                    key={r.value}
+                    active={value.ageRatings?.includes(r.value)}
+                    onClick={() =>
+                      onChange({
+                        ...value,
+                        ageRatings: toggleStr(value.ageRatings, r.value),
+                      })
+                    }
+                  >
+                    {r.label ?? r.description}
+                  </RefChip>
+                ))}
+              </ChipRow>
+            </FilterSection>
+          ) : null}
+
+          <FilterSection
+            title={`Жанры ${value.genreIds?.length ? `(${value.genreIds.length})` : ''}`}
+          >
             {genres.length === 0 ? (
               <div className="text-text-muted text-sm">Загружаю…</div>
             ) : (
-              <div className="flex flex-wrap gap-1.5 max-h-64 overflow-auto">
-                {genres.map((g) => {
-                  const active = value.genreIds?.includes(g.id);
-                  return (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => toggleGenre(g.id)}
-                      className={[
-                        'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
-                        active
-                          ? 'bg-accent text-white border-accent'
-                          : 'bg-bg-elevated text-text-dim border-border hover:border-accent/40',
-                      ].join(' ')}
-                    >
-                      {g.name}
-                    </button>
-                  );
-                })}
+              <div className="flex flex-wrap gap-1.5 max-h-56 overflow-auto">
+                {genres.map((g) => (
+                  <RefChip
+                    key={g.id}
+                    active={value.genreIds?.includes(g.id)}
+                    onClick={() =>
+                      onChange({ ...value, genreIds: toggleIn(value.genreIds, g.id) })
+                    }
+                  >
+                    {g.name}
+                  </RefChip>
+                ))}
               </div>
             )}
-          </div>
+          </FilterSection>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function FilterSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="text-text-dim text-xs font-bold uppercase tracking-wider mb-2">
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ChipRow({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-wrap gap-1.5">{children}</div>;
+}
+
+function RefChip({
+  active,
+  onClick,
+  children,
+}: {
+  active?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
+        active
+          ? 'bg-accent text-white border-accent'
+          : 'bg-bg-elevated text-text-dim border-border hover:border-accent/40',
+      ].join(' ')}
+    >
+      {children}
+    </button>
   );
 }

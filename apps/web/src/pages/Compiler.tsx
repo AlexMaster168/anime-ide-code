@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   compileAndRun,
   fetchCompilers,
+  getSnippet,
   LANG_PRESETS,
   parseCompileErrors,
   pickCompilerName,
+  snippetsForLang,
 } from '@anime-ide-code/shared';
 import type {
   CompileDiagnostic,
@@ -12,14 +14,16 @@ import type {
   WandboxCompiler,
 } from '@anime-ide-code/shared';
 import { useCompiler } from '../store/compiler';
-import { CodeEditor } from '../components/CodeEditor';
+import { CodeEditor, EDITOR_THEMES } from '../components/CodeEditor';
 import { Loader } from '../components/Loader';
 
 export function CompilerPage() {
   const langId = useCompiler((s) => s.langId);
   const sources = useCompiler((s) => s.sources);
+  const themeId = useCompiler((s) => s.themeId);
   const setLang = useCompiler((s) => s.setLang);
   const setSource = useCompiler((s) => s.setSource);
+  const setTheme = useCompiler((s) => s.setTheme);
   const resetCurrent = useCompiler((s) => s.resetCurrent);
 
   const [compilers, setCompilers] = useState<WandboxCompiler[]>([]);
@@ -27,6 +31,15 @@ export function CompilerPage() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<WandboxCompileResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [snippetsOpen, setSnippetsOpen] = useState(false);
+
+  const snippets = useMemo(() => snippetsForLang(langId), [langId]);
+
+  const insertSnippet = (snippetId: string) => {
+    const code = getSnippet(langId, snippetId);
+    if (code) setSource(langId, code);
+    setSnippetsOpen(false);
+  };
 
   useEffect(() => {
     fetchCompilers()
@@ -64,6 +77,9 @@ export function CompilerPage() {
         compiler: compilerName,
         code: source,
         stdin,
+        ...(preset.compilerOptionRaw
+          ? { 'compiler-option-raw': preset.compilerOptionRaw }
+          : {}),
       });
       setResult(res);
     } catch (e: unknown) {
@@ -119,8 +135,56 @@ export function CompilerPage() {
       </div>
 
       <div>
-        <div className="text-text-dim text-xs font-bold uppercase tracking-wider mb-2">
-          Код
+        <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+          <div className="text-text-dim text-xs font-bold uppercase tracking-wider">
+            Код
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSnippetsOpen((o) => !o)}
+                disabled={snippets.length === 0}
+                className="px-3 py-1.5 rounded-lg bg-bg-card border border-border text-text text-sm font-semibold hover:border-accent/40 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <span>📦</span>
+                <span>Сниппеты</span>
+                <span className="text-text-muted">▾</span>
+              </button>
+              {snippetsOpen ? (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setSnippetsOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 z-20 w-64 max-h-80 overflow-auto rounded-xl bg-bg-elevated border border-border shadow-2xl py-1">
+                    {snippets.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => insertSnippet(s.id)}
+                        className="w-full text-left px-4 py-2 text-sm text-text hover:bg-bg-card hover:text-accent transition-colors"
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </div>
+            <select
+              value={themeId}
+              onChange={(e) => setTheme(e.target.value)}
+              title="Тема редактора"
+              className="bg-bg-card border border-border rounded-lg px-3 py-1.5 text-text text-sm outline-none focus:border-accent cursor-pointer"
+            >
+              {EDITOR_THEMES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         <CodeEditor
           langId={preset.id}
@@ -128,6 +192,7 @@ export function CompilerPage() {
           onChange={(v) => setSource(preset.id, v)}
           diagnostics={diagnostics}
           minHeight={380}
+          themeId={themeId}
         />
         {diagnostics.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
